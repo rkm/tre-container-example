@@ -108,7 +108,7 @@ jobs:
       - name: Upload artifacts to GHA
         uses: actions/upload-artifact@v4
         with:
-          name: 'trivy-reports-${{ matrix.package }}'
+          name: 'trivy-reports'
           path: '${{ env.reports_dir }}/'
       # - name: push image
       #   run: |
