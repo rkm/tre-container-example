@@ -93,10 +93,12 @@ jobs:
                   --output /reports/trivy-sbom.json \
                   "${img}:${tag}"
           echo "reports_dir=${reports_dir}" >> "$GITHUB_ENV"
+          # debug
+          ls -l "${reports_dir}"
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v2
         with:
-          sarif_file: '${{ env.reports_dir }}/*.sarif'
+          sarif_file: '${{ env.reports_dir }}/image-scan.sarif'
       - name: Upload artifacts to GHA
         uses: actions/upload-artifact@v4
         with:
