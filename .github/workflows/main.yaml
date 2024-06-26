@@ -1,0 +1,108 @@
+---
+name: main
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  HADOLINT_IMAGE: "ghcr.io/hadolint/hadolint:latest"
+  TRIVY_IMAGE: "ghcr.io/aquasecurity/trivy:latest"
+
+jobs:
+  containers:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Pull images
+        run: |
+          docker pull "${HADOLINT_IMAGE}"
+          docker pull "${TRIVY_IMAGE}"
+      - name: Run Trivy - Dockerfile check
+        run: |
+          config="trivy-configs/dockerfile.yaml"
+          if [ ! -f "./configs/${config}" ]; then
+              echo "Error: Missing ./configs/${config}"
+              exit 1
+          fi
+          docker run \
+            --rm \
+            -v $HOME/.cache/trivy:/root/.cache \
+            -v "$(pwd)":/repo \
+            "${TRIVY_IMAGE}" \
+                config \
+                --config "/repo/configs/${config}" \
+                /repo/Dockerfile
+      - name: Run hadolint
+        run: |
+          docker run \
+            --rm \
+            -i \
+            -v "$(pwd)":/repo \
+            "${HADOLINT_IMAGE}" \
+                hadolint \
+                --config /repo/configs/hadolint.yaml \
+                - < Dockerfile
+      - name: Build Docker image
+        run: |
+          img="ghcr.io/<ORG>/<REPO>"
+          version="$(grep _VERSION= Dockerfile | cut -d'"' -f2)"
+          image_revision="$(grep _IMAGE_REVISION= Dockerfile | cut -d'"' -f2)"
+          tag="${version}-${image_revision}"
+          build_ctx=$(mktemp -d)
+          docker build -f Dockerfile --tag "${img}:${tag}" --tag "${img}:latest" "${build_ctx}"
+          echo "img=${img}" >> "${GITHUB_ENV}"
+          echo "tag=${tag}" >> "${GITHUB_ENV}"
+      - name: Run Trivy - image scan
+        run: |
+          reports_dir=$(mktemp -d)
+          docker inspect --format="{{index .Id}}" "${img}:${tag}" > "${reports_dir}/image-id.txt"
+
+          # Generate SARIF report for GitHub Security
+          docker run \
+              --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v $HOME/.cache/trivy:/root/.cache \
+              -v "${reports_dir}":/reports \
+              -v "$(pwd)":/repo \
+              "${TRIVY_IMAGE}" \
+                  image \
+                  --config "/repo/configs/${config}" \
+                  --format sarif \
+                  --output /reports/image-scan.sarif \
+                  "${img}:${tag}"
+
+          # Generate SBOM
+          docker run \
+              --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v $HOME/.cache/trivy:/root/.cache \
+              -v "${reports_dir}":/reports \
+              -v $(pwd):/repo \
+              "${TRIVY_IMAGE}" \
+                  image \
+                  --config "/repo/configs/${config}" \
+                  --format cyclonedx \
+                  --output /reports/trivy-sbom.json \
+                  "${img}:${tag}"
+          echo "reports_dir=${reports_dir}" >> "$GITHUB_ENV"
+      - name: Upload SARIF report
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: '${{ env.reports_dir }}/*.sarif'
+      - name: Upload artifacts to GHA
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'trivy-reports-${{ matrix.package }}'
+          path: '${{ env.reports_dir }}/'
+      # - name: push image
+      #   run: |
+      #     echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+      #     docker push "$img:$tag"
+      #     docker push "$img:latest"
