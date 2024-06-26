@@ -47,7 +47,7 @@ jobs:
             -v "$(pwd)":/repo \
             "${HADOLINT_IMAGE}" \
                 hadolint \
-                --config /repo/configs/hadolint.yaml \
+                --config /repo/hadolint.yaml \
                 - < Dockerfile
       - name: Build Docker image
         run: |
