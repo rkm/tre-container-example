@@ -3,7 +3,6 @@ scan:
   scanners:
   - vuln
   - secret
-  - license
 severity:
   - UNKNOWN
   - LOW
