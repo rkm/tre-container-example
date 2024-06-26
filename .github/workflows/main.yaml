@@ -70,6 +70,12 @@ jobs:
           reports_dir=$(mktemp -d)
           docker inspect --format="{{index .Id}}" "${img}:${tag}" > "${reports_dir}/image-id.txt"
 
+          config="trivy-configs/image-scan.yaml"
+          if [ ! -f "./${config}" ]; then
+              echo "Error: Missing ./configs/${config}"
+              exit 1
+          fi
+
           # Generate SARIF report for GitHub Security
           docker run \
               --rm \
@@ -79,7 +85,7 @@ jobs:
               -v "$(pwd)":/repo \
               "${TRIVY_IMAGE}" \
                   image \
-                  --config "/repo/configs/${config}" \
+                  --config "/repo/${config}" \
                   --format sarif \
                   --output /reports/image-scan.sarif \
                   "${img}:${tag}"
@@ -93,7 +99,7 @@ jobs:
               -v $(pwd):/repo \
               "${TRIVY_IMAGE}" \
                   image \
-                  --config "/repo/configs/${config}" \
+                  --config "/repo/${config}" \
                   --format cyclonedx \
                   --output /reports/trivy-sbom.json \
                   "${img}:${tag}"

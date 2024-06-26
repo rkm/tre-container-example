@@ -1,0 +1,14 @@
+---
+scan:
+  scanners:
+  - vuln
+  - secret
+  - license
+severity:
+  - UNKNOWN
+  - LOW
+  - MEDIUM
+  - HIGH
+  - CRITICAL
+include-non-failures: true
+timeout: 30m
