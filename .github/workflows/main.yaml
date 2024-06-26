@@ -17,6 +17,11 @@ env:
 jobs:
   containers:
     runs-on: ubuntu-22.04
+    permissions:
+      security-events: write
+      # only required for workflows in private repositories
+      # actions: read
+      # contents: read
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
