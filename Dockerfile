@@ -5,6 +5,7 @@ ARG PACKAGE_IMAGE_REVISION="1"
 
 RUN : \
     && apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -qq -y --no-install-recommends \
     && DEBIAN_FRONTEND=noninteractive apt-get install \
          -qq -y --no-install-recommends \
          ca-certificates \
