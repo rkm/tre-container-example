@@ -27,7 +27,7 @@ jobs:
       - name: Run Trivy - Dockerfile check
         run: |
           config="trivy-configs/dockerfile.yaml"
-          if [ ! -f "./configs/${config}" ]; then
+          if [ ! -f "./${config}" ]; then
               echo "Error: Missing ./configs/${config}"
               exit 1
           fi
