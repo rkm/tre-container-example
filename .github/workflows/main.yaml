@@ -37,7 +37,7 @@ jobs:
             -v "$(pwd)":/repo \
             "${TRIVY_IMAGE}" \
                 config \
-                --config "/repo/configs/${config}" \
+                --config "/repo/${config}" \
                 /repo/Dockerfile
       - name: Run hadolint
         run: |
