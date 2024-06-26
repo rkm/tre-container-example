@@ -99,6 +99,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: '${{ env.reports_dir }}/image-scan.sarif'
+          token: "${{ secrets.GITHUB_TOKEN }}"
       - name: Upload artifacts to GHA
         uses: actions/upload-artifact@v4
         with:
